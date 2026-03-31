@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎵 Muziek Bingo</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', Arial, sans-serif; background: #121212; color: #fff; min-height: 100vh; }
+
+/* NAV */
+nav { background: #000; padding: 0 20px; display: flex; align-items: center; flex-wrap: wrap; gap: 5px; }
+nav h1 { color: #1db954; font-size: 20px; padding: 15px 10px 15px 0; margin-right: 10px; white-space: nowrap; }
+.tab-btn { background: none; border: none; color: #aaa; font-size: 15px; padding: 15px 18px; cursor: pointer; border-bottom: 3px solid transparent; transition: all 0.2s; white-space: nowrap; }
+.tab-btn.active { color: #fff; border-bottom-color: #1db954; }
+.tab-btn:hover { color: #fff; }
+
+/* LAYOUT */
+.page { display: none; padding: 25px 20px; max-width: 950px; margin: 0 auto; }
+.page.active { display: block; }
+.card { background: #1e1e1e; border-radius: 10px; padding: 20px; margin-bottom: 18px; }
+
+/* TYPOGRAPHY */
+h2 { font-size: 20px; margin-bottom: 16px; color: #1db954; }
+h3 { font-size: 15px; margin-bottom: 10px; color: #ccc; }
+p { color: #aaa; font-size: 14px; line-height: 1.5; }
+label { font-size: 13px; color: #aaa; display: block; margin-bottom: 5px; }
+
+/* FORM ELEMENTS */
+input[type="text"], input[type="number"], input[type="url"] {
+  background: #2a2a2a; border: 1px solid #444; color: #fff;
+  padding: 10px 12px; border-radius: 6px; font-size: 14px; width: 100%;
+}
+input:focus { outline: none; border-color: #1db954; }
+
+/* BUTTONS */
+button { padding: 10px 18px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+.btn-green { background: #1db954; color: #000; font-weight: bold; }
+.btn-green:hover { background: #1ed760; }
+.btn-green:disabled { background: #555; color: #888; cursor: not-allowed; }
+.btn-grey { background: #333; color: #fff; }
+.btn-grey:hover { background: #444; }
+.btn-icon { background: none; border: none; color: #e74c3c; font-size: 18px; cursor: pointer; padding: 2px 6px; line-height: 1; }
+.btn-icon:hover { color: #ff7675; }
+
+/* SONG LIST */
+.song-form { display: grid; grid-template-columns: 2fr 2fr 80px auto; gap: 10px; align-items: end; }
+@media(max-width:600px) { .song-form { grid-template-columns: 1fr 1fr; } }
+.song-list { list-style: none; display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+.song-item { display: flex; align-items: center; gap: 8px; background: #2a2a2a; padding: 9px 12px; border-radius: 6px; }
+.song-item span { font-size: 13px; }
+.s-title { font-weight: bold; flex: 2; }
+.s-artist { color: #bbb; flex: 2; }
+.s-year { color: #888; flex: 0 0 50px; text-align: right; }
+.list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+
+/* BINGO CARDS */
+.cards-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 15px; }
+.bingo-card { background: #fff; color: #000; border-radius: 8px; overflow: hidden; }
+.bingo-title-bar { background: #1db954; color: #fff; text-align: center; padding: 8px 4px; font-weight: bold; font-size: 15px; letter-spacing: 5px; }
+.card-num { background: #f0f0f0; text-align: center; font-size: 10px; color: #666; padding: 2px; }
+.bingo-grid { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid #ddd; }
+.bingo-cell {
+  border-right: 1px solid #ddd; border-bottom: 1px solid #ddd;
+  padding: 4px 3px; min-height: 48px; font-size: 8.5px; line-height: 1.25;
+  display: flex; align-items: center; justify-content: center; text-align: center;
+  word-break: break-word; hyphens: auto;
+}
+.bingo-cell:nth-child(5n) { border-right: none; }
+.cell-free { background: #1db954; color: #fff; font-weight: bold; font-size: 10px; }
+.cell-year { color: #1565c0; font-weight: bold; font-size: 10px; }
+.cell-artist { color: #6a1b9a; }
+
+/* SPOTIFY STATUS */
+.status-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: #2a2a2a; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: #555; flex-shrink: 0; }
+.dot.on { background: #1db954; }
+
+/* TRACK LIST */
+.track-list { list-style: none; display: flex; flex-direction: column; gap: 3px; max-height: 380px; overflow-y: auto; }
+.track-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; cursor: pointer; transition: background 0.1s; }
+.track-item:hover { background: #2a2a2a; }
+.track-item.active { background: rgba(29,185,84,0.15); }
+.track-item.done { opacity: 0.38; }
+.track-num { color: #666; font-size: 12px; width: 22px; text-align: right; flex-shrink: 0; }
+.track-info { flex: 1; min-width: 0; }
+.t-name { font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-artist { font-size: 12px; color: #aaa; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.t-check { color: #1db954; font-size: 13px; flex-shrink: 0; }
+
+/* PLAYER CONTROLS */
+.player-info { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
+.album-art { width: 58px; height: 58px; border-radius: 6px; object-fit: cover; background: #333; flex-shrink: 0; }
+.np-title { font-size: 16px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.np-artist { font-size: 13px; color: #aaa; }
+.progress-wrap { margin-bottom: 14px; }
+.progress-bg { background: #333; height: 4px; border-radius: 2px; overflow: hidden; margin: 6px 0; }
+.progress-fill { background: #1db954; height: 100%; border-radius: 2px; transition: width 0.8s linear; }
+.progress-labels { display: flex; justify-content: space-between; font-size: 11px; color: #777; }
+.countdown { text-align: center; font-size: 13px; color: #aaa; }
+.countdown.warn { color: #e67e22; font-weight: bold; }
+.controls { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.ctrl { background: none; border: none; color: #ccc; font-size: 26px; cursor: pointer; width: 46px; height: 46px; border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+.ctrl:hover { background: #2a2a2a; color: #fff; }
+.ctrl-play { background: #1db954 !important; color: #000 !important; font-size: 20px; }
+.ctrl-play:hover { background: #1ed760 !important; transform: scale(1.06); }
+
+/* INSTRUCTION BOX */
+.info-box { background: #1a2e1f; border-left: 3px solid #1db954; padding: 14px 16px; border-radius: 0 8px 8px 0; margin-bottom: 16px; font-size: 14px; line-height: 1.6; color: #ccc; }
+.info-box code { background: #2a2a2a; padding: 2px 6px; border-radius: 3px; font-size: 13px; color: #1db954; }
+.error-msg { color: #e74c3c; font-size: 13px; margin-top: 8px; display: none; }
+
+/* PRINT */
+@media print {
+  body { background: #fff !important; color: #000 !important; }
+  nav, .no-print { display: none !important; }
+  #page-bingo { display: block !important; padding: 0; }
+  #page-spotify { display: none !important; }
+  #setup-section { display: none !important; }
+  #cards-section { display: block !important; }
+  .cards-grid { display: grid !important; grid-template-columns: repeat(2, 1fr); gap: 8mm; }
+  .bingo-card { page-break-inside: avoid; break-inside: avoid; border: 1px solid #ccc; }
+  #cards-header { display: none; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <h1>🎵 Muziek Bingo</h1>
+  <button class="tab-btn active" id="tab-bingo" onclick="showPage('bingo')">🃏 Bingokaarten</button>
+  <button class="tab-btn" id="tab-spotify" onclick="showPage('spotify')">▶️ Spotify Speler</button>
+</nav>
+
+<!-- ===== BINGO PAGE ===== -->
+<div id="page-bingo" class="page active">
+
+  <div id="setup-section">
+    <!-- Add songs -->
+    <div class="card no-print">
+      <h2>Nummers toevoegen</h2>
+      <p style="margin-bottom:14px">Voeg minimaal 8 nummers toe. Per vakje op de kaart wordt willekeurig de titel, artiest of het jaar getoond.</p>
+      <div class="song-form">
+        <div><label>Titel</label><input type="text" id="inp-title" placeholder="Bohemian Rhapsody"></div>
+        <div><label>Artiest</label><input type="text" id="inp-artist" placeholder="Queen"></div>
+        <div><label>Jaar</label><input type="number" id="inp-year" placeholder="1975" min="1900" max="2030"></div>
+        <div style="display:flex;align-items:flex-end"><button class="btn-green" onclick="addSong()" style="white-space:nowrap;width:100%">+ Voeg toe</button></div>
+      </div>
+    </div>
+
+    <!-- Song list -->
+    <div class="card no-print" id="song-list-card" style="display:none">
+      <div class="list-header">
+        <h2 style="margin:0">Nummers (<span id="song-count">0</span>)</h2>
+        <div style="display:flex;gap:8px">
+          <button class="btn-grey" onclick="clearSongs()">Alles wissen</button>
+          <button class="btn-green" id="btn-generate" onclick="generateCards()" disabled>Kaarten genereren</button>
+        </div>
+      </div>
+      <ul class="song-list" id="song-list"></ul>
+    </div>
+  </div>
+
+  <!-- Generated cards -->
+  <div id="cards-section" style="display:none">
+    <div id="cards-header" class="list-header no-print">
+      <h2 style="margin:0">Kaarten (<span id="cards-count">0</span>)</h2>
+      <div style="display:flex;gap:8px">
+        <button class="btn-grey" onclick="document.getElementById('setup-section').style.display='block'">← Bewerken</button>
+        <button class="btn-green" onclick="window.print()">🖨️ Afdrukken</button>
+      </div>
+    </div>
+    <div class="cards-grid" id="cards-grid"></div>
+  </div>
+</div>
+
+<!-- ===== SPOTIFY PAGE ===== -->
+<div id="page-spotify" class="page">
+
+      <!-- Player UI (shown after auth) -->
+  <div id="step-player" style="display:none">
+
+    <!-- Status + Playlist load -->
+    <div class="card">
+      <div class="status-bar">
+        <div class="dot" id="status-dot"></div>
+        <span id="status-text" style="flex:1">Verbinden...</span>
+        <button class="btn-grey" onclick="logout()" style="font-size:12px;padding:6px 12px">Uitloggen</button>
+      </div>
+      <div style="display:flex;gap:10px;align-items:flex-end">
+        <div style="flex:1"><label>Spotify playlist URL of ID</label><input type="text" id="playlist-input" placeholder="https://open.spotify.com/playlist/..."></div>
+        <button class="btn-green" onclick="loadPlaylist()" id="btn-load">Laden</button>
+      </div>
+    </div>
+
+    <!-- Now playing + controls -->
+    <div class="card" id="player-card" style="display:none">
+      <h2 style="margin-bottom:14px">Nu speelt</h2>
+      <div class="player-info">
+        <img id="album-art" class="album-art" src="" alt="" style="display:none">
+        <div style="flex:1;min-width:0">
+          <div class="np-title" id="np-title">—</div>
+          <div class="np-artist" id="np-artist">Selecteer een nummer</div>
+        </div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bg"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+        <div class="progress-labels">
+          <span id="elapsed">0:00</span>
+          <span id="countdown" class="countdown">— seconden</span>
+          <span>1:30</span>
+        </div>
+      </div>
+      <div class="controls">
+        <button class="ctrl" onclick="prevTrack()" title="Vorige">⏮</button>
+        <button class="ctrl ctrl-play" id="btn-play" onclick="togglePlay()">▶</button>
+        <button class="ctrl" onclick="nextTrack()" title="Volgende">⏭</button>
+      </div>
+    </div>
+
+    <!-- Track list -->
+    <div class="card" id="tracklist-card" style="display:none">
+      <div class="list-header">
+        <h2 style="margin:0">Playlist (<span id="track-count">0</span> nummers)</h2>
+        <button class="btn-grey" onclick="resetPlayed()" style="font-size:12px">Herstel ✓</button>
+      </div>
+      <ul class="track-list" id="track-list"></ul>
+    </div>
+
+  </div><!-- /step-player -->
+</div><!-- /page-spotify -->
+
+<script>
+// =============================================================
+// TAB NAVIGATION
+// =============================================================
+function showPage(name) {
+  ['bingo','spotify'].forEach(n => {
+    document.getElementById('page-' + n).classList.remove('active');
+    document.getElementById('tab-' + n).classList.remove('active');
+  });
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// =============================================================
+// BINGO — Song management
+// =============================================================
+let songs = [];
+try { songs = JSON.parse(localStorage.getItem('bingo_songs') || '[]'); } catch(e) {}
+
+function saveSongs() {
+  try { localStorage.setItem('bingo_songs', JSON.stringify(songs)); } catch(e) {}
+}
+
+document.getElementById('inp-year').addEventListener('keydown', e => { if (e.key === 'Enter') addSong(); });
+document.getElementById('inp-artist').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('inp-year').focus(); });
+document.getElementById('inp-title').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('inp-artist').focus(); });
+
+function addSong() {
+  const title  = document.getElementById('inp-title').value.trim();
+  const artist = document.getElementById('inp-artist').value.trim();
+  const year   = document.getElementById('inp-year').value.trim();
+  if (!title || !artist || !year) { alert('Vul titel, artiest én jaar in.'); return; }
+  songs.push({ title, artist, year });
+  saveSongs();
+  document.getElementById('inp-title').value = '';
+  document.getElementById('inp-artist').value = '';
+  document.getElementById('inp-year').value = '';
+  document.getElementById('inp-title').focus();
+  renderSongs();
+}
+
+function removeSong(i) {
+  songs.splice(i, 1);
+  saveSongs();
+  renderSongs();
+}
+
+function clearSongs() {
+  if (!confirm('Alle nummers wissen?')) return;
+  songs = [];
+  saveSongs();
+  renderSongs();
+}
+
+function renderSongs() {
+  document.getElementById('song-count').textContent = songs.length;
+  document.getElementById('song-list-card').style.display = songs.length ? 'block' : 'none';
+  document.getElementById('btn-generate').disabled = songs.length < 8;
+  document.getElementById('song-list').innerHTML = songs.map((s, i) => `
+    <li class="song-item">
+      <span class="s-title">${esc(s.title)}</span>
+      <span class="s-artist">${esc(s.artist)}</span>
+      <span class="s-year">${esc(s.year)}</span>
+      <button class="btn-icon" onclick="removeSong(${i})" title="Verwijder">✕</button>
+    </li>`).join('');
+}
+
+// =============================================================
+// BINGO — Card generation
+// =============================================================
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function generateCards() {
+  const pool = [];
+  songs.forEach(s => {
+    pool.push({ text: s.title,  cls: '' });
+    pool.push({ text: s.artist, cls: 'cell-artist' });
+    pool.push({ text: s.year,   cls: 'cell-year' });
+  });
+
+  const numCards = Math.max(20, songs.length + 5);
+  const cards = [];
+
+  for (let c = 0; c < numCards; c++) {
+    let cells = [];
+    while (cells.length < 24) cells = cells.concat(shuffle(pool));
+    cells = shuffle(cells).slice(0, 24);
+    cells.splice(12, 0, { text: 'VRIJ', cls: 'cell-free' });
+    cards.push(cells);
+  }
+
+  document.getElementById('cards-count').textContent = cards.length;
+  document.getElementById('cards-grid').innerHTML = cards.map((cells, idx) => `
+    <div class="bingo-card">
+      <div class="bingo-title-bar">B I N G O</div>
+      <div class="card-num">Kaart ${idx + 1}</div>
+      <div class="bingo-grid">${cells.map(cell =>
+        `<div class="bingo-cell ${cell.cls}">${esc(cell.text)}</div>`
+      ).join('')}</div>
+    </div>`).join('');
+
+  document.getElementById('cards-section').style.display = 'block';
+  document.getElementById('setup-section').style.display = 'none';
+  document.getElementById('cards-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+// =============================================================
+// SPOTIFY — Token (hardcoded refresh token)
+// =============================================================
+const CLIENT_ID    = 'e6613d1015604d9a84e083a427803f1b';
+const REFRESH_TOKEN = 'AQCPeVSHJW5vCAGgZINSHBjuw-qSfSHToarCpsLg1W9evSujaG48qBkeqdzN-DKNe6c79O_SfsNxyOgRG5TVhfqgrNUSrMWdVn_VRn745TTvU38S60_8FFVCT4hIoyGXSAA';
+
+let cachedToken = null;
+let tokenExpiry  = 0;
+
+async function getToken() {
+  if (cachedToken && Date.now() < tokenExpiry - 60000) return cachedToken;
+  const res = await fetch('https://accounts.spotify.com/api/token', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ client_id: CLIENT_ID, grant_type: 'refresh_token', refresh_token: REFRESH_TOKEN })
+  });
+  const data = await res.json();
+  if (data.error) { setStatus(false, 'Token fout: ' + data.error_description); return null; }
+  cachedToken  = data.access_token;
+  tokenExpiry  = Date.now() + data.expires_in * 1000;
+  return cachedToken;
+}
+
+// =============================================================
+// SPOTIFY — Device & Playback (REST API, werkt op mobiel)
+// =============================================================
+let tracks = [], currentIdx = -1;
+let isPlaying = false;
+let elapsed = 0, timerInt = null;
+let played = new Set();
+let activeDeviceId = null;
+const MAX_SEC = 90;
+
+function showPlayerUI() {
+  document.getElementById('step-player').style.display = 'block';
+  setStatus(false, 'Verbinden met Spotify...');
+  initPlayer();
+}
+
+async function initPlayer() {
+  const token = await getToken();
+  if (!token) return;
+  await refreshDevices(token);
+}
+
+async function refreshDevices(token) {
+  if (!token) token = await getToken();
+  if (!token) return;
+  try {
+    const res  = await fetch('https://api.spotify.com/v1/me/player/devices', { headers: { Authorization: 'Bearer ' + token } });
+    const data = await res.json();
+    const devs = data.devices || [];
+    if (devs.length === 0) {
+      setStatus(false, '⚠️ Open de Spotify app op je telefoon, en speel even iets af. Kom dan hier terug.');
+      return;
+    }
+    const active = devs.find(d => d.is_active) || devs[0];
+    activeDeviceId = active.id;
+    setStatus(true, 'Verbonden via "' + active.name + '" ✓');
+  } catch(e) {
+    setStatus(false, 'Fout: ' + e.message);
+  }
+}
+
+function setStatus(ok, msg) {
+  document.getElementById('status-dot').className = 'dot' + (ok ? ' on' : '');
+  document.getElementById('status-text').textContent = msg;
+}
+
+async function loadPlaylist() {
+  const input = document.getElementById('playlist-input').value.trim();
+  const m = input.match(/playlist\/([A-Za-z0-9]+)/);
+  const pid = m ? m[1] : input;
+  if (!pid) { alert('Voer een geldige playlist URL of ID in.'); return; }
+
+  const btn = document.getElementById('btn-load');
+  btn.textContent = 'Laden...'; btn.disabled = true;
+
+  const token = await getToken();
+  if (!token) { btn.textContent = 'Laden'; btn.disabled = false; return; }
+
+  try {
+    tracks = [];
+    let url = 'https://api.spotify.com/v1/playlists/' + pid + '/tracks?limit=100&fields=next,items(track(id,name,artists,album(images)))';
+    while (url) {
+      const res  = await fetch(url, { headers: { Authorization: 'Bearer ' + token } });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error.message);
+      data.items
+        .filter(i => i.track && i.track.id)
+        .forEach(i => tracks.push({
+          id:     i.track.id,
+          name:   i.track.name,
+          artist: i.track.artists.map(a => a.name).join(', '),
+          img:    (i.track.album && i.track.album.images && i.track.album.images[0]) ? i.track.album.images[0].url : ''
+        }));
+      url = data.next;
+    }
+    played = new Set(); currentIdx = -1;
+    document.getElementById('track-count').textContent = tracks.length;
+    document.getElementById('tracklist-card').style.display = 'block';
+    document.getElementById('player-card').style.display    = 'block';
+    renderTracks();
+    // refresh devices now that Spotify is likely open
+    await refreshDevices(token);
+  } catch(e) {
+    alert('Playlist laden mislukt: ' + e.message);
+  } finally {
+    btn.textContent = 'Laden'; btn.disabled = false;
+  }
+}
+
+function renderTracks() {
+  document.getElementById('track-list').innerHTML = tracks.map((t, i) => `
+    <li class="track-item ${i === currentIdx ? 'active' : ''} ${played.has(i) && i !== currentIdx ? 'done' : ''}"
+        onclick="playTrack(${i})">
+      <span class="track-num">${i + 1}</span>
+      <div class="track-info">
+        <div class="t-name">${esc(t.name)}</div>
+        <div class="t-artist">${esc(t.artist)}</div>
+      </div>
+      ${played.has(i) ? '<span class="t-check">✓</span>' : ''}
+    </li>`).join('');
+}
+
+async function playTrack(idx) {
+  if (idx < 0 || idx >= tracks.length) return;
+
+  // Try to get device if we don't have one
+  if (!activeDeviceId) await refreshDevices();
+  if (!activeDeviceId) { alert('Open eerst de Spotify app en speel even iets af.'); return; }
+
+  stopTimers();
+  currentIdx = idx;
+  played.add(idx);
+  isPlaying  = true;
+  elapsed    = 0;
+
+  const t = tracks[idx];
+  document.getElementById('np-title').textContent  = t.name;
+  document.getElementById('np-artist').textContent = t.artist;
+  const art = document.getElementById('album-art');
+  if (t.img) { art.src = t.img; art.style.display = 'block'; }
+  else art.style.display = 'none';
+
+  updatePlayBtn();
+  updateProgress();
+  renderTracks();
+  document.querySelectorAll('.track-item')[idx]?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  const token = await getToken();
+  if (!token) return;
+
+  try {
+    const res = await fetch('https://api.spotify.com/v1/me/player/play?device_id=' + activeDeviceId, {
+      method: 'PUT',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uris: ['spotify:track:' + t.id] })
+    });
+    if (res.status === 404) {
+      // Device gone, retry
+      await refreshDevices();
+      alert('Spotify app niet gevonden. Zorg dat de Spotify app open is.');
+      return;
+    }
+  } catch(e) { console.error(e); }
+
+  timerInt = setInterval(() => {
+    if (!isPlaying) return;
+    elapsed++;
+    updateProgress();
+    if (elapsed >= MAX_SEC) { stopTimers(); nextTrack(); }
+  }, 1000);
+}
+
+function stopTimers() { clearInterval(timerInt); timerInt = null; }
+
+function updateProgress() {
+  const pct  = Math.min(elapsed / MAX_SEC * 100, 100);
+  const left = MAX_SEC - elapsed;
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('elapsed').textContent   = fmt(elapsed);
+  const cd = document.getElementById('countdown');
+  cd.textContent = left + ' seconden resterend';
+  cd.className   = 'countdown' + (left <= 15 ? ' warn' : '');
+}
+
+function fmt(s) { return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0'); }
+
+function updatePlayBtn() {
+  document.getElementById('btn-play').textContent = isPlaying ? '⏸' : '▶';
+}
+
+async function togglePlay() {
+  const token = await getToken();
+  if (!token) return;
+  const endpoint = isPlaying ? 'pause' : 'play';
+  await fetch('https://api.spotify.com/v1/me/player/' + endpoint, {
+    method: 'PUT',
+    headers: { Authorization: 'Bearer ' + token }
+  });
+  isPlaying = !isPlaying;
+  updatePlayBtn();
+}
+
+async function nextTrack() {
+  if (currentIdx + 1 >= tracks.length) { alert('Einde van de playlist!'); return; }
+  await playTrack(currentIdx + 1);
+}
+
+async function prevTrack() {
+  if (currentIdx <= 0) return;
+  await playTrack(currentIdx - 1);
+}
+
+function resetPlayed() {
+  played = new Set();
+  if (currentIdx >= 0) played.add(currentIdx);
+  renderTracks();
+}
+
+function logout() {
+  cachedToken = null;
+  activeDeviceId = null;
+  stopTimers();
+  tracks = []; currentIdx = -1;
+  document.getElementById('step-player').style.display = 'none';
+}
+
+// =============================================================
+// HELPERS
+// =============================================================
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
+
+// =============================================================
+// INIT
+// =============================================================
+renderSongs();
+showPlayerUI();
+</script>
+</body>
+</html>
