@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<title>Spotify Token Ophalen</title>
+<style>
+body { font-family: Arial, sans-serif; max-width: 600px; margin: 40px auto; padding: 20px; background: #121212; color: #fff; }
+h1 { color: #1db954; }
+button { background: #1db954; color: #000; border: none; padding: 12px 24px; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+button:hover { background: #1ed760; }
+input { width: 100%; padding: 10px; background: #2a2a2a; border: 1px solid #444; color: #fff; border-radius: 6px; font-size: 14px; margin-top: 8px; }
+.box { background: #1e1e1e; border-radius: 8px; padding: 20px; margin: 16px 0; }
+.token-box { background: #0a2e0a; border: 1px solid #1db954; border-radius: 8px; padding: 16px; margin: 16px 0; word-break: break-all; font-family: monospace; font-size: 13px; color: #1db954; }
+.step { margin-bottom: 12px; color: #ccc; line-height: 1.6; }
+.err { color: #e74c3c; margin-top: 8px; }
+label { color: #aaa; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>🎵 Spotify Token Ophalen</h1>
+<p style="color:#aaa">Eenmalig op laptop — daarna werkt de app altijd op mobiel.</p>
+
+<div class="box" id="stap1">
+  <h2 style="color:#1db954">Stap 1: Inloggen</h2>
+  <div class="step">Klik op de knop. Je gaat naar Spotify, logt in, en komt terug op example.com.</div>
+  <button onclick="login()">Inloggen met Spotify</button>
+</div>
+
+<div class="box" id="stap2">
+  <h2 style="color:#1db954">Stap 2: Plak de URL</h2>
+  <div class="step">Je staat nu op <strong>example.com</strong>. Kopieer de volledige URL uit de adresbalk en plak hem hier:</div>
+  <label>URL (begint met https://example.com/?code=...)</label>
+  <input type="text" id="url-input" placeholder="https://example.com/?code=...">
+  <br><br>
+  <button onclick="getToken()">Token ophalen</button>
+  <div class="err" id="err"></div>
+</div>
+
+<div id="stap3" style="display:none">
+  <div class="box">
+    <h2 style="color:#1db954">✅ Gelukt! Dit is je refresh token:</h2>
+    <div class="token-box" id="token-output"></div>
+    <button onclick="copy()" style="margin-top:10px">📋 Kopieer token</button>
+    <div style="margin-top:16px;color:#ccc;font-size:14px">
+      Bewaar dit token — je hebt hem zo nodig om in de bingo app te plakken.
+    </div>
+  </div>
+</div>
+
+<script>
+const CLIENT_ID    = 'e6613d1015604d9a84e083a427803f1b';
+const REDIRECT_URI = 'https://example.com';
+const VERIFIER     = 'MuziekBingo40eVerjaardag-FixedVerifier-xK9mP2qL';
+const CHALLENGE    = 'urbLG07CfNOUrgZw09XtBb8ZSRF8iSaa_hAUspd9QBY';
+const SCOPES = 'streaming user-read-email user-read-private user-modify-playback-state user-read-playback-state playlist-read-private playlist-read-collaborative';
+
+function login() {
+  const url = 'https://accounts.spotify.com/authorize?' + new URLSearchParams({
+    client_id: CLIENT_ID,
+    response_type: 'code',
+    redirect_uri: REDIRECT_URI,
+    scope: SCOPES,
+    code_challenge_method: 'S256',
+    code_challenge: CHALLENGE,
+  });
+  window.open(url, '_blank');
+}
+
+async function getToken() {
+  const raw = document.getElementById('url-input').value.trim();
+  const err = document.getElementById('err');
+  err.textContent = '';
+
+  let code;
+  try { code = new URL(raw).searchParams.get('code'); } catch(e) {}
+  if (!code) { err.textContent = 'Geen geldige URL — begin de URL met https://example.com/?code='; return; }
+
+  try {
+    const res = await fetch('https://accounts.spotify.com/api/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id: CLIENT_ID,
+        grant_type: 'authorization_code',
+        code,
+        redirect_uri: REDIRECT_URI,
+        code_verifier: VERIFIER,
+      })
+    });
+    const data = await res.json();
+    if (data.error) { err.textContent = 'Fout: ' + data.error_description; return; }
+
+    document.getElementById('token-output').textContent = data.refresh_token;
+    document.getElementById('stap3').style.display = 'block';
+    document.getElementById('stap3').scrollIntoView({ behavior: 'smooth' });
+  } catch(e) {
+    err.textContent = 'Netwerkfout: ' + e.message;
+  }
+}
+
+function copy() {
+  const t = document.getElementById('token-output').textContent;
+  navigator.clipboard.writeText(t).then(() => alert('Gekopieerd!'));
+}
+</script>
+</body>
+</html>
